@@ -1,0 +1,9 @@
+{
+    "redirects": [
+        {
+            "source": "/(.*)",
+            "destination": "https://netnerve.online/",
+            "permanent": true
+        }
+    ]
+}
