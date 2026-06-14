@@ -1,10 +1,11 @@
-// import React, { useState } from "react";
+import React, { useState } from "react";
 import { FaFileAlt , FaFolderOpen , FaGetPocket   } from "react-icons/fa";
 import {motion} from "framer-motion";
 import { FaAnglesDown } from "react-icons/fa6";
 // import ReactMarkdown from "react-markdown";
 // import remarkGfm from "remark-gfm";
 import MarkdownPreview from '@uiw/react-markdown-preview';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type Packet = {
   timestamp: string;
@@ -29,18 +30,41 @@ type ResultPageProps = {
   
 };
 const ResultPage = ({file , protocols , packetData, totalDataSize , summary,}: ResultPageProps) => {
+    const [activeTab, setActiveTab] = useState<'summary' | 'graph'>('summary');
     const fileName = file?.name ?? "No file uploaded yet";
     const fileSize = file ? `${(file.size / 1024).toFixed(2)} KB` : "N/A";
 
-const timestamps = packetData
-  .map(pkt => pkt.timestamp)
-  .filter(Boolean) // remove undefined/null
-  .map(ts => new Date(Number(ts) * 1000)); // convert to Date
+    const timestamps = packetData
+      .map(pkt => pkt.timestamp)
+      .filter(Boolean) // remove undefined/null
+      .map(ts => new Date(Number(ts) * 1000)); // convert to Date
 
-const startTime = Math.min(...timestamps.map(ts => ts.getTime())); 
-const endTime = Math.max(...timestamps.map(ts => ts.getTime())); 
-// const { start, end } = getTimeRange(); 
-    // const fileType = file?.type ?? "Unknown";
+    const startTime = Math.min(...timestamps.map(ts => ts.getTime())); 
+    const endTime = Math.max(...timestamps.map(ts => ts.getTime())); 
+    
+    // Calculate packets per second with finer granularity (100ms buckets)
+    const ppsData = React.useMemo(() => {
+      if (packetData.length === 0) return [];
+      
+      const timeBuckets: { [key: number]: number } = {};
+      
+      packetData.forEach(packet => {
+        const timestamp = Number(packet.timestamp);
+        // Use 100ms buckets instead of 1-second for better resolution
+        const bucket = Math.floor(timestamp * 10) / 10;  // 100ms precision
+        timeBuckets[bucket] = (timeBuckets[bucket] || 0) + 1;
+      });
+      
+      const sortedBuckets = Object.entries(timeBuckets)
+        .sort(([timeA], [timeB]) => Number(timeA) - Number(timeB))
+        .map(([time, count]) => ({
+          time: new Date(Number(time) * 1000).toLocaleTimeString('en-IN'),
+          pps: count,
+          timestamp: Number(time)
+        }));
+      
+      return sortedBuckets;
+    }, [packetData]);
   return (
     <motion.div
       className="font-[Poppins] md:px-10 px-3 md:py-10 py-5 relative"
@@ -77,28 +101,114 @@ const endTime = Math.max(...timestamps.map(ts => ts.getTime()));
       </div>
 
       <div className="p-6 h-[80vh] rounded-2xl backdrop-blur-xl shadow-[0_0_55px_rgba(59,130,246,0.6)] border-2 border-blue-400 overflow-y-auto">
-      {/* <h1 className=" text-teal-500 text-3xl font-extrabold mb-4">Sniffed, Scanned, and Summarized 🤖</h1> */}
-    <motion.p
-     className="text-white/90 text-base leading-relaxed"
-     initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 1,delay:1, ease: "easeInOut" }}
-    >
-      
-      <MarkdownPreview 
-      source={summary}
-      style={{
-      backgroundColor: "transparent",
-      font:"bold",
-      // color: "#fff", // or "inherit"
-      // padding: "1rem",
-      // height:80
-      fontFamily:"Poppins",
-      fontWeight:900
-  }}
-      />
-  </motion.p>
-</div>
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={() => setActiveTab('summary')}
+            className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              activeTab === 'summary'
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            Summary
+          </button>
+          <button
+            onClick={() => setActiveTab('graph')}
+            className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              activeTab === 'graph'
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+           Graph
+          </button>
+        </div>
+
+        {activeTab === 'summary' ? (
+          <motion.div
+            className="text-white/90 text-base leading-relaxed"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 1, ease: "easeInOut" }}
+          >
+            <MarkdownPreview 
+              source={summary}
+              style={{
+                backgroundColor: "transparent",
+                fontFamily: "Poppins",
+                color: "#e0e0e0",
+                lineHeight: "1.8",
+              }}
+              className="markdown-content"
+            />
+            <style>{`
+              .markdown-content h2 {
+                color: #10b981;
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-top: 1.5rem;
+                margin-bottom: 0.75rem;
+                border-bottom: 2px solid #10b981;
+                padding-bottom: 0.5rem;
+              }
+              .markdown-content ul {
+                list-style-type: disc;
+                margin-left: 1.5rem;
+                margin-bottom: 1rem;
+              }
+              .markdown-content li {
+                margin-bottom: 0.5rem;
+                color: #d0d0d0;
+              }
+              .markdown-content p {
+                margin-bottom: 0.75rem;
+                line-height: 1.6;
+              }
+            `}</style>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="w-full h-full flex items-center justify-center"
+          >
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={ppsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="rgba(255,255,255,0.7)"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="rgba(255,255,255,0.7)"
+                  style={{ fontSize: '12px' }}
+                  label={{ value: 'Packets/Second', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: "8px",
+                  }}
+                  labelStyle={{ color: '#fff' }}
+                />
+                <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }} />
+                <Line 
+                  type="monotone" 
+                  dataKey="pps" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Packets Per Second"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+        )}
+      </div>
       <div className="bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl shadow-xl border border-white/20 p-6 rounded-2xl text-xl font-bold space-y-4 mt-10">
         <p>
           <FaFileAlt className="inline-block mr-2 text-xl" />

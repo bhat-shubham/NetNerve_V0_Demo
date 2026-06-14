@@ -51,7 +51,7 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
   // const [isProcessed, setIsProcessed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const maxSize = 2 * 1024 * 1024;
+  const maxSize = 10 * 1024 * 1024;
   const [showComplete, setShowComplete] = useState(false);
   // const [protocols, setProtocols] = useState<string[]>([]);
   // const [packetData, setPacketData] = useState<any[]>([]);
@@ -85,15 +85,16 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
   };
   let controller = new AbortController();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generateSummary = async (protocols: string[], packet_data: any[], total_data_size: number[]) => {
+  const generateSummary = async (protocols: string[], packet_data: any[], total_data_size: number[], classification: any) => {
     try {
-      const summaryRes = await fetch("https://netnerve.onrender.com/generate-summary/", {
+      const summaryRes = await fetch("http://localhost:8000/generate-summary/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           protocols,
           packet_data,
           total_data_size,
+          classification,
         }),
       });
 
@@ -126,7 +127,7 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
       // axios request that handles both upload progress and processing
       const response = await axios({
         method: 'post',
-        url: 'https://netnerve.onrender.com/uploadfile/',
+        url: 'http://localhost:8000/uploadfile/',
         data: formData,
         signal: controller.signal,
         onUploadProgress: (axiosProgressEvent) => {
@@ -142,13 +143,13 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
         },
       });
 
-      const { protocols, packet_data, total_data_size } = response.data;
+      const { protocols, packet_data, total_data_size, classification } = response.data;
 
       setProtocols(protocols);
       setPacketData(packet_data);
       setTotalDataSize(total_data_size);
       
-      const summaryPromise = generateSummary(protocols, packet_data, total_data_size);
+      const summaryPromise = generateSummary(protocols, packet_data, total_data_size, classification);
       
       const [summary] = await Promise.all([
         summaryPromise,
@@ -290,7 +291,7 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.5 }}
                           className="text-white">
-                            ✅ Uploading Done!
+                            Uploading Done!
                             </motion.p>
                             ) : (
                             <motion.p
@@ -299,7 +300,7 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
                             animate={{color: ["#ffffff", "#A1A1A1", "#ffffff"],}}
                             transition={{ duration: 2, ease:"easeInOut" ,repeat:Infinity }}
                             className="text-white">
-                              🧠 Processing...
+                               Processing...
                               </motion.p>)
                               ) : (
                               <motion.p
@@ -308,10 +309,10 @@ export const FileUpload = ({ onChange, setIsProcessed, isProcessed , setFile , s
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.5 }}
                               className="text-white">
-                                📂 Uploading {progress}%
+                                 Uploading {progress}%
                                 </motion.p>)
                                 ) : (
-                                <p>📦 Analyze My Packet</p>
+                                <p> Analyze My Packet</p>
                                 )}
                                 </motion.div>
                     <div>

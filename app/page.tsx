@@ -119,8 +119,7 @@ export default function Home() {
       ) : (
     <div
       className="parent bg-gradient-to-r from-[#063747] to-[#0a466c] font-[Poppins,Georgia] font-extrabold">
-        <div className="bg-black px-8 text-center">Services May Feel Slow Due To Low Backend Specs as This Is Working On Free Tier Of Render :( If You Can,<Link href="https://ko-fi.com/netnerve"><span className="text-blue-400 underline">Sponsor The Project!</span></Link></div>
-  <div ref={homeRef} className="h-[80vh] relative flex-col align-middle items-center">
+  <div ref={homeRef} className="h-[100vh] relative flex-col align-middle items-center">
     
       <div className="py-2 md:py-5 navbar bg-transparent relative z-50">
         <div className="flex-1 flex-col items-center">
@@ -224,14 +223,14 @@ export default function Home() {
         </div>
       </div>
       </div>
-      <div className="py-10 flex justify-center items-center align-middle">
+      {/* <div className="py-10 flex justify-center items-center align-middle">
         <Suspense fallback={<p>Loading Demo...</p>}>
       <video width="1250" height="240" className="rounded-2xl hidden md:block" autoPlay playsInline loop muted>
         <source src="/Demo.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
       </Suspense>
-      </div>
+      </div> */}
       <Features featureRef={featureRef} />
       <div ref={working} className="h-[50x]">
        <Horizontalscroll />
